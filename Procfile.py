@@ -1,1 +1,0 @@
-web: gunicorn shopbot_project.wsgi
