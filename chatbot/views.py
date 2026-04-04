@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from openai import OpenAI
 
 # ── Load environment variables ─────────────────────────
@@ -12,7 +14,7 @@ load_dotenv()
 
 # ── Secure Groq AI client ─────────────────────────────
 client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),  # ✅ safe
+    api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
 
@@ -30,10 +32,100 @@ PRODUCTS = [
 
 cart = {}
 
+
+# ── CORS helper ───────────────────────────────────────
+def cors(response):
+    response["Access-Control-Allow-Origin"] = "*"
+    response["Access-Control-Allow-Headers"] = "Content-Type"
+    response["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+
+def options_response():
+    r = JsonResponse({})
+    return cors(r)
+
+
+# ── Auth views ────────────────────────────────────────
+@csrf_exempt
+@require_http_methods(["POST", "OPTIONS"])
+def register(request):
+    if request.method == "OPTIONS":
+        return options_response()
+    try:
+        data = json.loads(request.body)
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+        email = data.get("email", "").strip()
+
+        if not username or not password:
+            return cors(JsonResponse({"error": "Username and password are required."}, status=400))
+
+        if len(username) < 3:
+            return cors(JsonResponse({"error": "Username must be at least 3 characters."}, status=400))
+
+        if len(password) < 6:
+            return cors(JsonResponse({"error": "Password must be at least 6 characters."}, status=400))
+
+        if User.objects.filter(username=username).exists():
+            return cors(JsonResponse({"error": "Username already taken."}, status=400))
+
+        user = User.objects.create_user(username=username, password=password, email=email)
+        return cors(JsonResponse({
+            "success": True,
+            "message": f"Account created! Welcome, {username} 🎉",
+            "username": username
+        }))
+    except Exception as e:
+        return cors(JsonResponse({"error": str(e)}, status=500))
+
+
+@csrf_exempt
+@require_http_methods(["POST", "OPTIONS"])
+def login_view(request):
+    if request.method == "OPTIONS":
+        return options_response()
+    try:
+        data = json.loads(request.body)
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+
+        if not username or not password:
+            return cors(JsonResponse({"error": "Username and password are required."}, status=400))
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            return cors(JsonResponse({
+                "success": True,
+                "message": f"Welcome back, {username}! 👋",
+                "username": username
+            }))
+        else:
+            return cors(JsonResponse({"error": "Invalid username or password."}, status=401))
+    except Exception as e:
+        return cors(JsonResponse({"error": str(e)}, status=500))
+
+
+@csrf_exempt
+@require_http_methods(["POST", "OPTIONS"])
+def logout_view(request):
+    if request.method == "OPTIONS":
+        return options_response()
+    logout(request)
+    return cors(JsonResponse({"success": True, "message": "Logged out."}))
+
+
 # ── AI helper ────────────────────────────────────────
 def ask_ai(user_message, cart_contents):
-    products_info = "\n".join([f"ID:{p['id']} | {p['name']} | ${p['price']} | {p['category']} | stock:{p['stock']}" for p in PRODUCTS])
-    cart_info = "Empty" if not cart_contents else ", ".join([f"{PRODUCTS[int(pid)-1]['name']} x{qty}" for pid, qty in cart_contents.items()])
+    products_info = "\n".join([
+        f"ID:{p['id']} | {p['name']} | ${p['price']} | {p['category']} | stock:{p['stock']}"
+        for p in PRODUCTS
+    ])
+    cart_info = (
+        "Empty"
+        if not cart_contents
+        else ", ".join([f"{PRODUCTS[int(pid)-1]['name']} x{qty}" for pid, qty in cart_contents.items()])
+    )
 
     system_prompt = f"""You are ShopBot, an AI shopping assistant. 
 Available products:
@@ -70,7 +162,7 @@ Respond ONLY with JSON:
 def generate_response(message, session_cart):
     try:
         ai = ask_ai(message, session_cart)
-    except:
+    except Exception:
         return {"message": "🤔 Try: 'show phones' or 'help'", "intent": "unknown", "products": []}
 
     intent = ai.get("intent", "unknown")
@@ -79,9 +171,12 @@ def generate_response(message, session_cart):
     product_id = ai.get("product_id")
     show_products = ai.get("show_products", False)
 
-    products = PRODUCTS if show_products and (category is None or category=="null") else [p for p in PRODUCTS if p["category"]==category] if show_products else []
+    products = (
+        PRODUCTS if show_products and (category is None or category == "null")
+        else [p for p in PRODUCTS if p["category"] == category] if show_products
+        else []
+    )
 
-    # Update cart
     if intent == "add_to_cart" and product_id:
         pid = str(product_id)
         session_cart[pid] = session_cart.get(pid, 0) + 1
@@ -94,18 +189,20 @@ def generate_response(message, session_cart):
     if intent == "checkout":
         session_cart.clear()
 
-    return {"message": bot_message, "intent": intent, "products": products, "cart_count": sum(session_cart.values())}
+    return {
+        "message": bot_message,
+        "intent": intent,
+        "products": products,
+        "cart_count": sum(session_cart.values())
+    }
 
 
-# ── Django API ────────────────────────────────────────
+# ── Django Chat API ───────────────────────────────────
 @csrf_exempt
 @require_http_methods(["POST", "OPTIONS"])
 def chat(request):
     if request.method == "OPTIONS":
-        response = JsonResponse({})
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Headers"] = "Content-Type"
-        return response
+        return options_response()
     data = json.loads(request.body)
     message = data.get("message", "").strip()
     session_id = data.get("session_id", "default")
@@ -113,14 +210,11 @@ def chat(request):
         cart[session_id] = {}
     response_data = generate_response(message, cart[session_id])
     response_data["session_id"] = session_id
-    resp = JsonResponse(response_data)
-    resp["Access-Control-Allow-Origin"] = "*"
-    return resp
+    return cors(JsonResponse(response_data))
+
 
 @require_http_methods(["GET"])
-def products(request):
+def products_view(request):
     category = request.GET.get("category", None)
     result = PRODUCTS if not category else [p for p in PRODUCTS if p["category"] == category]
-    resp = JsonResponse({"products": result})
-    resp["Access-Control-Allow-Origin"] = "*"
-    return resp
+    return cors(JsonResponse({"products": result}))

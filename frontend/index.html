@@ -34,6 +34,11 @@
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
     .cart-btn { display:flex; align-items:center; gap:8px; padding:8px 16px; border-radius:10px; background:rgba(255,107,53,.12); color:var(--accent); border:1px solid rgba(255,107,53,.3); cursor:pointer; font-family:'Syne',sans-serif; font-weight:700; font-size:.82rem; transition:all .2s; }
     .cart-btn:hover { background:rgba(255,107,53,.22); transform:translateY(-1px); }
+    .auth-btn { display:flex; align-items:center; gap:7px; padding:7px 14px; border-radius:10px; border:1px solid var(--border2); background:transparent; color:var(--text2); font-family:'DM Sans',sans-serif; font-size:.82rem; cursor:pointer; transition:all .2s; }
+    .auth-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(255,107,53,.07); }
+    .user-chip { display:flex; align-items:center; gap:8px; padding:6px 14px; border-radius:10px; background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); color:var(--green); font-size:.82rem; font-weight:500; }
+    .user-chip .logout-x { background:none; border:none; color:var(--muted); cursor:pointer; font-size:.9rem; padding:0 0 0 6px; transition:color .2s; }
+    .user-chip .logout-x:hover { color:var(--red); }
     .main { position:relative; z-index:1; display:flex; flex:1; overflow:hidden; }
     .sidebar { width:260px; min-width:260px; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; padding-bottom:20px; }
     .sidebar::-webkit-scrollbar { width:0; }
@@ -121,9 +126,93 @@
     @keyframes toastOut { to{opacity:0;transform:translateY(10px)} }
     @media(max-width:900px) { .header-center { display:none; } .sidebar { width:220px; min-width:220px; } }
     @media(max-width:680px) { .sidebar { display:none; } .messages { padding:14px; } .input-area { padding:10px 14px 16px; } .hero { display:none; } }
+
+    /* ══ AUTH MODAL ══════════════════════════════════ */
+    .modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.72); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; animation:fadeIn .2s ease; }
+    .modal-overlay.hidden { display:none; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .modal { background:var(--surface); border:1px solid var(--border2); border-radius:20px; padding:36px 40px; width:100%; max-width:420px; box-shadow:0 24px 80px rgba(0,0,0,.6); animation:slideUp .3s ease; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+    .modal-logo { display:flex; align-items:center; gap:10px; margin-bottom:24px; }
+    .modal-logo-icon { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:17px; }
+    .modal-logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:1.15rem; }
+    .modal-logo-text span { color:var(--accent); }
+    .modal-tabs { display:flex; gap:4px; background:var(--card); border-radius:10px; padding:4px; margin-bottom:26px; }
+    .modal-tab { flex:1; padding:8px; border-radius:8px; border:none; background:transparent; color:var(--muted); font-family:'DM Sans',sans-serif; font-size:.85rem; font-weight:500; cursor:pointer; transition:all .2s; }
+    .modal-tab.active { background:var(--accent); color:#fff; font-weight:600; }
+    .modal-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1.25rem; margin-bottom:6px; }
+    .modal-sub { font-size:.82rem; color:var(--muted); margin-bottom:22px; }
+    .form-group { margin-bottom:16px; }
+    .form-label { display:block; font-size:.78rem; color:var(--text2); margin-bottom:6px; font-weight:500; letter-spacing:.03em; }
+    .form-input { width:100%; padding:11px 14px; border-radius:10px; background:var(--card); border:1px solid var(--border); color:var(--text); font-family:'DM Sans',sans-serif; font-size:.88rem; outline:none; transition:border-color .2s, box-shadow .2s; }
+    .form-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,107,53,.12); }
+    .form-input::placeholder { color:var(--muted); }
+    .modal-err { font-size:.78rem; color:var(--red); background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.2); border-radius:8px; padding:9px 12px; margin-bottom:14px; display:none; }
+    .modal-err.show { display:block; }
+    .modal-submit { width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--accent),var(--accent3)); color:#fff; font-family:'Syne',sans-serif; font-weight:700; font-size:.9rem; cursor:pointer; transition:all .2s; box-shadow:0 4px 16px rgba(255,107,53,.35); }
+    .modal-submit:hover { transform:translateY(-1px); box-shadow:0 6px 22px rgba(255,107,53,.45); }
+    .modal-submit:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .modal-footer { text-align:center; margin-top:18px; font-size:.78rem; color:var(--muted); }
+    .modal-footer a { color:var(--accent); cursor:pointer; }
+    .modal-footer a:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
+
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <div class="modal-logo">
+      <div class="modal-logo-icon">🛍️</div>
+      <div class="modal-logo-text">Shop<span>Bot</span></div>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+      <button class="modal-tab" id="tabRegister" onclick="switchTab('register')">Create Account</button>
+    </div>
+
+    <div id="formLogin">
+      <div class="modal-title">Welcome back 👋</div>
+      <div class="modal-sub">Sign in to your ShopBot account</div>
+      <div class="modal-err" id="loginErr"></div>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" id="loginUsername" type="text" placeholder="your_username" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') submitLogin()"/>
+      </div>
+      <button class="modal-submit" id="loginBtn" onclick="submitLogin()">Sign In →</button>
+      <div class="modal-footer">No account? <a onclick="switchTab('register')">Create one free</a></div>
+    </div>
+
+    <div id="formRegister" style="display:none">
+      <div class="modal-title">Create your account ✨</div>
+      <div class="modal-sub">Join ShopBot and shop smarter</div>
+      <div class="modal-err" id="registerErr"></div>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" id="regUsername" type="text" placeholder="choose_a_username" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email <span style="color:var(--muted)">(optional)</span></label>
+        <input class="form-input" id="regEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password <span style="color:var(--muted)">(min. 6 chars)</span></label>
+        <input class="form-input" id="regPassword" type="password" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <input class="form-input" id="regPassword2" type="password" placeholder="••••••••" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter') submitRegister()"/>
+      </div>
+      <button class="modal-submit" id="registerBtn" onclick="submitRegister()">Create Account →</button>
+      <div class="modal-footer">Already registered? <a onclick="switchTab('login')">Sign in</a></div>
+    </div>
+  </div>
+</div>
 
 <header>
   <div class="logo">
@@ -138,6 +227,9 @@
   </div>
   <div class="header-right">
     <div class="badge">AI Online</div>
+    <div id="authArea">
+      <button class="auth-btn" onclick="openAuthModal()">👤 Sign In</button>
+    </div>
     <button class="cart-btn" onclick="sendMessage('show my cart')">
       🛒 Cart (<span id="cartCount">0</span>)
     </button>
@@ -205,154 +297,194 @@
 </div>
 
 <script>
-  // ✅ CHANGED: Production API URL
-  const API_URL = 'https://chatbot-shopping.onrender.com/api/chat/';
+  const API_URL = 'https://chatbot-shopping.onrender.com/api/';
   let sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
   let cartCount = 0;
   let searchTimeout = null;
+  let currentUser  = null;
 
   const PRODUCT_PHOTOS = {
-    1: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&q=80',
-    2: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&q=80',
-    3: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80',
-    4: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&q=80',
-    5: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&q=80',
-    6: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400&q=80',
-    7: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&q=80',
-    8: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
+    1:'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&q=80',
+    2:'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&q=80',
+    3:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80',
+    4:'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&q=80',
+    5:'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=400&q=80',
+    6:'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400&q=80',
+    7:'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&q=80',
+    8:'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
   };
-
-  const RATINGS = { 1:4.8, 2:4.6, 3:4.9, 4:4.5, 5:4.7, 6:4.8, 7:4.6, 8:4.3 };
-  const REVIEW_COUNTS = { 1:2841, 2:1923, 3:3102, 4:987, 5:1456, 6:2234, 7:876, 8:543 };
-  const OLD_PRICES = { 1:1099, 2:949, 3:1399, 4:1199, 5:399, 6:279, 7:1199, 8:170 };
-  const ON_SALE = [1, 3, 5, 8];
-  const CATEGORY_EMOJI = { phones:'📱', laptops:'💻', headphones:'🎧', tablets:'📟', shoes:'👟' };
+  const RATINGS      = {1:4.8,2:4.6,3:4.9,4:4.5,5:4.7,6:4.8,7:4.6,8:4.3};
+  const REVIEW_COUNTS= {1:2841,2:1923,3:3102,4:987,5:1456,6:2234,7:876,8:543};
+  const OLD_PRICES   = {1:1099,2:949,3:1399,4:1199,5:399,6:279,7:1199,8:170};
+  const ON_SALE      = [1,3,5,8];
+  const CATEGORY_EMOJI = {phones:'📱',laptops:'💻',headphones:'🎧',tablets:'📟',shoes:'👟'};
 
   const messagesEl = document.getElementById('messages');
   const inputEl    = document.getElementById('userInput');
   const sendBtn    = document.getElementById('sendBtn');
   const cartEl     = document.getElementById('cartCount');
+  const authModal  = document.getElementById('authModal');
+  
+  function scrollBottom()    { messagesEl.scrollTop = messagesEl.scrollHeight; }
+  function autoResize(el)    { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+  function handleKey(e)      { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+  function setActive(btn)    { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  function liveSearch(val)   { clearTimeout(searchTimeout); if(!val.trim())return; searchTimeout=setTimeout(()=>sendMessage('show '+val.trim()),600); }
+  function formatText(t)     { return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+  function getStars(r)       { const f=Math.floor(r),h=r%1>=.5?1:0,e=5-f-h; return '★'.repeat(f)+(h?'½':'')+'☆'.repeat(e); }
+  function getTime()         { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+  function showToast(msg, bg) {
+    const t=document.createElement('div'); t.className='toast';
+    if(bg) t.style.background=bg;
+    t.innerHTML=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2900);
+  }
 
-  function scrollBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
-  function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
-  function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
-  function setActive(btn) { document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-  function liveSearch(val) { clearTimeout(searchTimeout); if (!val.trim()) return; searchTimeout = setTimeout(() => sendMessage('show ' + val.trim()), 600); }
-  function showToast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2900); }
-  function formatText(text) { return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>'); }
-  function getStars(rating) { const full = Math.floor(rating); const half = rating % 1 >= 0.5 ? 1 : 0; const empty = 5 - full - half; return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty); }
-  function getTime() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+  function openAuthModal()  { authModal.classList.remove('hidden'); setTimeout(()=>document.getElementById('loginUsername').focus(),80); }
+  function closeAuthModal() { authModal.classList.add('hidden'); }
+  authModal.addEventListener('click', e => { if(e.target===authModal) closeAuthModal(); });
+
+  function switchTab(tab) {
+    document.getElementById('formLogin').style.display    = tab==='login'    ? '' : 'none';
+    document.getElementById('formRegister').style.display = tab==='register' ? '' : 'none';
+    document.getElementById('tabLogin').classList.toggle('active',    tab==='login');
+    document.getElementById('tabRegister').classList.toggle('active', tab==='register');
+    document.getElementById('loginErr').classList.remove('show');
+    document.getElementById('registerErr').classList.remove('show');
+  }
+
+  function showErr(id, msg) {
+    const el=document.getElementById(id); el.textContent=msg; el.classList.add('show');
+  }
+
+  function setLoggedIn(username) {
+    currentUser = username;
+    sessionId   = 'user_' + username;
+    document.getElementById('authArea').innerHTML =
+      `<div class="user-chip">👤 ${username}
+         <button class="logout-x" onclick="doLogout()" title="Sign out">✕</button>
+       </div>`;
+    closeAuthModal();
+    showToast('✅ Signed in as ' + username);
+  }
+
+  async function submitLogin() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!username||!password) { showErr('loginErr','Please fill in all fields.'); return; }
+    const btn=document.getElementById('loginBtn');
+    btn.disabled=true; btn.textContent='Signing in…';
+    try {
+      const res  = await fetch(API_URL+'login/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({username,password}) });
+      const data = await res.json();
+      if (res.ok) { setLoggedIn(data.username); appendMessage('bot',`👋 Welcome back, **${data.username}**! How can I help you today?`); }
+      else         showErr('loginErr', data.error||'Login failed.');
+    } catch { showErr('loginErr','Cannot connect to server.'); }
+    btn.disabled=false; btn.textContent='Sign In →';
+  }
+
+  async function submitRegister() {
+    const username  = document.getElementById('regUsername').value.trim();
+    const email     = document.getElementById('regEmail').value.trim();
+    const password  = document.getElementById('regPassword').value;
+    const password2 = document.getElementById('regPassword2').value;
+    if (!username||!password)    { showErr('registerErr','Username and password are required.'); return; }
+    if (password!==password2)    { showErr('registerErr','Passwords do not match.'); return; }
+    if (password.length<6)       { showErr('registerErr','Password must be at least 6 characters.'); return; }
+    const btn=document.getElementById('registerBtn');
+    btn.disabled=true; btn.textContent='Creating account…';
+    try {
+      const res  = await fetch(API_URL+'register/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({username,email,password}) });
+      const data = await res.json();
+      if (res.ok) { setLoggedIn(data.username); appendMessage('bot',`🎉 Account created! Welcome to ShopBot, **${data.username}**!\n\nWhat are you looking for today?`); }
+      else         showErr('registerErr', data.error||'Registration failed.');
+    } catch { showErr('registerErr','Cannot connect to server.'); }
+    btn.disabled=false; btn.textContent='Create Account →';
+  }
+
+  async function doLogout() {
+    try { await fetch(API_URL+'logout/', {method:'POST', credentials:'include'}); } catch {}
+    currentUser = null;
+    sessionId   = 'session_' + Math.random().toString(36).substr(2,9);
+    document.getElementById('authArea').innerHTML = `<button class="auth-btn" onclick="openAuthModal()">👤 Sign In</button>`;
+    showToast('👋 Signed out','#3a3a55');
+  }
 
   function createProductCard(p) {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    const photoUrl = PRODUCT_PHOTOS[p.id];
-    const rating   = RATINGS[p.id] || 4.5;
-    const reviews  = REVIEW_COUNTS[p.id] || 100;
-    const oldPrice = OLD_PRICES[p.id];
-    const onSale   = ON_SALE.includes(p.id);
-    const lowStock = p.stock <= 5;
-    const imgHtml  = photoUrl ? `<img class="p-photo" src="${photoUrl}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
-    const placeholderStyle = photoUrl ? 'display:none' : '';
-    card.innerHTML = `
-      ${onSale ? '<div class="sale-badge">🔥 Sale</div>' : ''}
-      <div class="p-photo-wrap">
-        ${imgHtml}
-        <div class="p-photo-placeholder" style="${placeholderStyle}">${CATEGORY_EMOJI[p.category] || '📦'}</div>
-      </div>
+    const card=document.createElement('div'); card.className='product-card';
+    const photoUrl=PRODUCT_PHOTOS[p.id], rating=RATINGS[p.id]||4.5, reviews=REVIEW_COUNTS[p.id]||100;
+    const oldPrice=OLD_PRICES[p.id], onSale=ON_SALE.includes(p.id), lowStock=p.stock<=5;
+    const imgHtml=photoUrl?`<img class="p-photo" src="${photoUrl}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:'' ;
+    card.innerHTML=`
+      ${onSale?'<div class="sale-badge">🔥 Sale</div>':''}
+      <div class="p-photo-wrap">${imgHtml}<div class="p-photo-placeholder" style="${photoUrl?'display:none':''}">${CATEGORY_EMOJI[p.category]||'📦'}</div></div>
       <div class="p-body">
         <div class="p-stars"><span class="stars">${getStars(rating)}</span><span class="rating-count">(${reviews.toLocaleString()})</span></div>
         <div class="p-name">${p.name}</div>
-        <div class="p-price-row">
-          <span class="p-price">$${p.price}</span>
-          ${onSale && oldPrice ? `<span class="p-old-price">$${oldPrice}</span>` : ''}
-        </div>
-        <div class="p-stock-row">
-          <div class="stock-dot ${lowStock ? 'low' : ''}"></div>
-          <span class="p-stock">${lowStock ? `Only ${p.stock} left!` : `${p.stock} in stock`}</span>
-        </div>
-        <div class="card-actions">
-          <button class="add-btn" onclick="sendMessage('add ${p.name}')">+ Add to Cart</button>
-          <button class="wish-btn" title="Wishlist">♡</button>
-        </div>
+        <div class="p-price-row"><span class="p-price">$${p.price}</span>${onSale&&oldPrice?`<span class="p-old-price">$${oldPrice}</span>`:''}</div>
+        <div class="p-stock-row"><div class="stock-dot ${lowStock?'low':''}"></div><span class="p-stock">${lowStock?`Only ${p.stock} left!`:`${p.stock} in stock`}</span></div>
+        <div class="card-actions"><button class="add-btn" onclick="sendMessage('add ${p.name}')">+ Add to Cart</button><button class="wish-btn" title="Wishlist">♡</button></div>
       </div>`;
     return card;
   }
 
-  function appendMessage(role, text, products = []) {
-    const msg = document.createElement('div');
-    msg.className = `msg ${role}`;
-    const avatar = document.createElement('div');
-    avatar.className = `avatar ${role}`;
-    avatar.textContent = role === 'bot' ? '🛍️' : '😊';
-    const wrap = document.createElement('div');
-    wrap.className = 'msg-wrap';
-    wrap.style.maxWidth = '680px';
-    const meta = document.createElement('div');
-    meta.className = 'msg-meta';
-    meta.textContent = (role === 'bot' ? 'ShopBot AI' : 'You') + ' · ' + getTime();
-    const bubble = document.createElement('div');
-    bubble.className = `bubble ${role}`;
-    bubble.innerHTML = formatText(text);
-    wrap.appendChild(meta);
-    wrap.appendChild(bubble);
-    if (products && products.length > 0) {
-      const grid = document.createElement('div');
-      grid.className = 'product-grid';
-      products.forEach(p => grid.appendChild(createProductCard(p)));
-      wrap.appendChild(grid);
+  function appendMessage(role, text, products=[]) {
+    const msg=document.createElement('div'); msg.className=`msg ${role}`;
+    const avatar=document.createElement('div'); avatar.className=`avatar ${role}`;
+    avatar.textContent = role==='bot' ? '🛍️' : (currentUser?currentUser[0].toUpperCase():'😊');
+    const wrap=document.createElement('div'); wrap.className='msg-wrap'; wrap.style.maxWidth='680px';
+    const meta=document.createElement('div'); meta.className='msg-meta';
+    meta.textContent=(role==='bot'?'ShopBot AI':(currentUser||'You'))+' · '+getTime();
+    const bubble=document.createElement('div'); bubble.className=`bubble ${role}`;
+    bubble.innerHTML=formatText(text);
+    wrap.appendChild(meta); wrap.appendChild(bubble);
+    if (products&&products.length>0) {
+      const grid=document.createElement('div'); grid.className='product-grid';
+      products.forEach(p=>grid.appendChild(createProductCard(p))); wrap.appendChild(grid);
     }
-    msg.appendChild(avatar);
-    msg.appendChild(wrap);
-    messagesEl.appendChild(msg);
-    scrollBottom();
+    msg.appendChild(avatar); msg.appendChild(wrap);
+    messagesEl.appendChild(msg); scrollBottom();
   }
 
   function showTyping() {
-    const msg = document.createElement('div');
-    msg.className = 'msg bot'; msg.id = 'typing-indicator';
-    msg.innerHTML = `<div class="avatar bot">🛍️</div><div class="bubble bot"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    const msg=document.createElement('div'); msg.className='msg bot'; msg.id='typing-indicator';
+    msg.innerHTML=`<div class="avatar bot">🛍️</div><div class="bubble bot"><div class="typing"><span></span><span></span><span></span></div></div>`;
     messagesEl.appendChild(msg); scrollBottom();
   }
-  function hideTyping() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
+  function hideTyping() { const el=document.getElementById('typing-indicator'); if(el) el.remove(); }
 
-  async function sendMessage(preset = null) {
-    const text = (preset || inputEl.value).trim();
+  async function sendMessage(preset=null) {
+    const text=(preset||inputEl.value).trim();
     if (!text) return;
-    appendMessage('user', text);
-    inputEl.value = ''; inputEl.style.height = 'auto';
-    sendBtn.disabled = true; showTyping();
+    appendMessage('user',text);
+    inputEl.value=''; inputEl.style.height='auto';
+    sendBtn.disabled=true; showTyping();
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, session_id: sessionId })
-      });
-      const data = await res.json();
+      const res=await fetch(API_URL+'chat/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({message:text,session_id:sessionId}) });
+      const data=await res.json();
       hideTyping();
-      if (data.error) {
-        appendMessage('bot', '⚠️ Server error: ' + data.error);
-      } else {
-        appendMessage('bot', data.message, data.products || []);
-        if (data.cart_count !== undefined) { cartCount = data.cart_count; }
-        else if (data.intent === 'add_to_cart') { cartCount++; showToast('✅ Added to cart!'); }
-        else if (data.intent === 'checkout') { cartCount = 0; }
-        cartEl.textContent = cartCount;
+      if (data.error)  appendMessage('bot','⚠️ Server error: '+data.error);
+      else {
+        appendMessage('bot',data.message,data.products||[]);
+        if (data.cart_count!==undefined)  { cartCount=data.cart_count; }
+        else if (data.intent==='add_to_cart') { cartCount++; showToast('✅ Added to cart!'); }
+        else if (data.intent==='checkout')    { cartCount=0; }
+        cartEl.textContent=cartCount;
       }
-    } catch (err) {
+    } catch {
       hideTyping();
-      appendMessage('bot', '⚠️ Cannot connect to server.\n\nThe server may be sleeping — please wait 30 seconds and try again!');
+      appendMessage('bot','⚠️ Cannot connect to server.\n\nThe server may be sleeping — please wait 30 seconds and try again!');
     }
-    sendBtn.disabled = false; inputEl.focus();
+    sendBtn.disabled=false; inputEl.focus();
   }
 
   window.addEventListener('load', () => {
     setTimeout(() => {
       appendMessage('bot',
-        '👋 Welcome to **ShopBot**! I\'m your AI shopping assistant.\n\n' +
-        '🔍 Browse by category in the sidebar\n' +
-        '🛒 Add items to your cart\n' +
-        '⭐ All products have real ratings\n' +
-        '🔥 Check out today\'s hot deals!\n\n' +
+        '👋 Welcome to **ShopBot**! I\'m your AI shopping assistant.\n\n'+
+        '🔍 Browse by category in the sidebar\n'+
+        '🛒 Add items to your cart\n'+
+        '⭐ All products have real ratings\n'+
+        '🔥 Check out today\'s hot deals!\n\n'+
         'What are you looking for today?'
       );
     }, 400);
