@@ -1,1 +1,1 @@
-web: gunicorn shopbot_project.wsgi
+web: python manage.py migrate && gunicorn shopbot_project.wsgi:application
