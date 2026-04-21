@@ -126,8 +126,6 @@
     @keyframes toastOut { to{opacity:0;transform:translateY(10px)} }
     @media(max-width:900px) { .header-center { display:none; } .sidebar { width:220px; min-width:220px; } }
     @media(max-width:680px) { .sidebar { display:none; } .messages { padding:14px; } .input-area { padding:10px 14px 16px; } .hero { display:none; } }
-
-    /* ══ AUTH MODAL ══════════════════════════════════ */
     .modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.72); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; animation:fadeIn .2s ease; }
     .modal-overlay.hidden { display:none; }
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
@@ -144,7 +142,7 @@
     .modal-sub { font-size:.82rem; color:var(--muted); margin-bottom:22px; }
     .form-group { margin-bottom:16px; }
     .form-label { display:block; font-size:.78rem; color:var(--text2); margin-bottom:6px; font-weight:500; letter-spacing:.03em; }
-    .form-input { width:100%; padding:11px 14px; border-radius:10px; background:var(--card); border:1px solid var(--border); color:var(--text); font-family:'DM Sans',sans-serif; font-size:.88rem; outline:none; transition:border-color .2s, box-shadow .2s; }
+    .form-input { width:100%; padding:11px 14px; border-radius:10px; background:var(--card); border:1px solid var(--border); color:var(--text); font-family:'DM Sans',sans-serif; font-size:.88rem; outline:none; transition:border-color .2s,box-shadow .2s; }
     .form-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(255,107,53,.12); }
     .form-input::placeholder { color:var(--muted); }
     .modal-err { font-size:.78rem; color:var(--red); background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.2); border-radius:8px; padding:9px 12px; margin-bottom:14px; display:none; }
@@ -169,7 +167,6 @@
       <button class="modal-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
       <button class="modal-tab" id="tabRegister" onclick="switchTab('register')">Create Account</button>
     </div>
-
     <div id="formLogin">
       <div class="modal-title">Welcome back 👋</div>
       <div class="modal-sub">Sign in to your ShopBot account</div>
@@ -186,7 +183,6 @@
       <button class="modal-submit" id="loginBtn" onclick="submitLogin()">Sign In →</button>
       <div class="modal-footer">No account? <a onclick="switchTab('register')">Create one free</a></div>
     </div>
-
     <div id="formRegister" style="display:none">
       <div class="modal-title">Create your account ✨</div>
       <div class="modal-sub">Join ShopBot and shop smarter</div>
@@ -297,11 +293,15 @@
 </div>
 
 <script>
-  const API_URL = 'https://chatbot-shopping.onrender.com/api/';
-  let sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
-  let cartCount = 0;
+  // ✅ FIXED: Correct API URLs
+  const API_BASE = 'https://chatbot-shopping.onrender.com/api/';
+  const API_CHAT = API_BASE + 'chat/';
+  const API_AUTH = API_BASE + 'auth/';
+
+  let sessionId  = 'session_' + Math.random().toString(36).substr(2, 9);
+  let cartCount  = 0;
   let searchTimeout = null;
-  let currentUser  = null;
+  let currentUser   = null;
 
   const PRODUCT_PHOTOS = {
     1:'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&q=80',
@@ -313,26 +313,26 @@
     7:'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&q=80',
     8:'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
   };
-  const RATINGS      = {1:4.8,2:4.6,3:4.9,4:4.5,5:4.7,6:4.8,7:4.6,8:4.3};
-  const REVIEW_COUNTS= {1:2841,2:1923,3:3102,4:987,5:1456,6:2234,7:876,8:543};
-  const OLD_PRICES   = {1:1099,2:949,3:1399,4:1199,5:399,6:279,7:1199,8:170};
-  const ON_SALE      = [1,3,5,8];
-  const CATEGORY_EMOJI = {phones:'📱',laptops:'💻',headphones:'🎧',tablets:'📟',shoes:'👟'};
+  const RATINGS       = {1:4.8,2:4.6,3:4.9,4:4.5,5:4.7,6:4.8,7:4.6,8:4.3};
+  const REVIEW_COUNTS = {1:2841,2:1923,3:3102,4:987,5:1456,6:2234,7:876,8:543};
+  const OLD_PRICES    = {1:1099,2:949,3:1399,4:1199,5:399,6:279,7:1199,8:170};
+  const ON_SALE       = [1,3,5,8];
+  const CATEGORY_EMOJI= {phones:'📱',laptops:'💻',headphones:'🎧',tablets:'📟',shoes:'👟'};
 
   const messagesEl = document.getElementById('messages');
   const inputEl    = document.getElementById('userInput');
   const sendBtn    = document.getElementById('sendBtn');
   const cartEl     = document.getElementById('cartCount');
   const authModal  = document.getElementById('authModal');
-  
-  function scrollBottom()    { messagesEl.scrollTop = messagesEl.scrollHeight; }
-  function autoResize(el)    { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
-  function handleKey(e)      { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
-  function setActive(btn)    { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
-  function liveSearch(val)   { clearTimeout(searchTimeout); if(!val.trim())return; searchTimeout=setTimeout(()=>sendMessage('show '+val.trim()),600); }
-  function formatText(t)     { return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
-  function getStars(r)       { const f=Math.floor(r),h=r%1>=.5?1:0,e=5-f-h; return '★'.repeat(f)+(h?'½':'')+'☆'.repeat(e); }
-  function getTime()         { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+
+  function scrollBottom()  { messagesEl.scrollTop = messagesEl.scrollHeight; }
+  function autoResize(el)  { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+  function handleKey(e)    { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+  function setActive(btn)  { document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  function liveSearch(val) { clearTimeout(searchTimeout); if(!val.trim())return; searchTimeout=setTimeout(()=>sendMessage('show '+val.trim()),600); }
+  function formatText(t)   { return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+  function getStars(r)     { const f=Math.floor(r),h=r%1>=.5?1:0,e=5-f-h; return '★'.repeat(f)+(h?'½':'')+'☆'.repeat(e); }
+  function getTime()       { return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
   function showToast(msg, bg) {
     const t=document.createElement('div'); t.className='toast';
     if(bg) t.style.background=bg;
@@ -374,7 +374,7 @@
     const btn=document.getElementById('loginBtn');
     btn.disabled=true; btn.textContent='Signing in…';
     try {
-      const res  = await fetch(API_URL+'login/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({username,password}) });
+      const res  = await fetch(API_AUTH+'login/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({username,password}) });
       const data = await res.json();
       if (res.ok) { setLoggedIn(data.username); appendMessage('bot',`👋 Welcome back, **${data.username}**! How can I help you today?`); }
       else         showErr('loginErr', data.error||'Login failed.');
@@ -393,7 +393,7 @@
     const btn=document.getElementById('registerBtn');
     btn.disabled=true; btn.textContent='Creating account…';
     try {
-      const res  = await fetch(API_URL+'register/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({username,email,password}) });
+      const res  = await fetch(API_AUTH+'register/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({username,email,password}) });
       const data = await res.json();
       if (res.ok) { setLoggedIn(data.username); appendMessage('bot',`🎉 Account created! Welcome to ShopBot, **${data.username}**!\n\nWhat are you looking for today?`); }
       else         showErr('registerErr', data.error||'Registration failed.');
@@ -402,7 +402,7 @@
   }
 
   async function doLogout() {
-    try { await fetch(API_URL+'logout/', {method:'POST', credentials:'include'}); } catch {}
+    try { await fetch(API_AUTH+'logout/', {method:'POST', credentials:'include'}); } catch {}
     currentUser = null;
     sessionId   = 'session_' + Math.random().toString(36).substr(2,9);
     document.getElementById('authArea').innerHTML = `<button class="auth-btn" onclick="openAuthModal()">👤 Sign In</button>`;
@@ -459,13 +459,13 @@
     inputEl.value=''; inputEl.style.height='auto';
     sendBtn.disabled=true; showTyping();
     try {
-      const res=await fetch(API_URL+'chat/', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({message:text,session_id:sessionId}) });
+      const res=await fetch(API_CHAT, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({message:text,session_id:sessionId}) });
       const data=await res.json();
       hideTyping();
       if (data.error)  appendMessage('bot','⚠️ Server error: '+data.error);
       else {
         appendMessage('bot',data.message,data.products||[]);
-        if (data.cart_count!==undefined)  { cartCount=data.cart_count; }
+        if (data.cart_count!==undefined)      { cartCount=data.cart_count; }
         else if (data.intent==='add_to_cart') { cartCount++; showToast('✅ Added to cart!'); }
         else if (data.intent==='checkout')    { cartCount=0; }
         cartEl.textContent=cartCount;
@@ -485,7 +485,7 @@
         '🛒 Add items to your cart\n'+
         '⭐ All products have real ratings\n'+
         '🔥 Check out today\'s hot deals!\n\n'+
-        'What are you looking for today?'
+        'Sign in to save your cart! 👤'
       );
     }, 400);
     inputEl.focus();
