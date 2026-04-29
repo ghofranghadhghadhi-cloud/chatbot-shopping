@@ -28,6 +28,10 @@ PRODUCTS = [
     {"id": 6, "name": "AirPods Pro",        "price": 249,  "category": "headphones", "stock": 20},
     {"id": 7, "name": "iPad Pro 12.9",      "price": 1099, "category": "tablets",    "stock": 8},
     {"id": 8, "name": "Nike Air Max 270",   "price": 150,  "category": "shoes",      "stock": 25},
+    {"id": 9, "name": "Apple Watch Series 9", "price": 399, "category": "wearables", "stock": 12},
+    {"id": 10, "name": "HP Pavilion 14", "price": 750, "category": "laptops", "stock": 6},
+    {"id": 11, "name": "Logitech MX Master 3S", "price": 120, "category": "accessories", "stock": 20},
+    {"id": 12, "name": "Samsung Galaxy Tab S9", "price": 899, "category": "tablets", "stock": 9},
 ]
 
 cart = {}
