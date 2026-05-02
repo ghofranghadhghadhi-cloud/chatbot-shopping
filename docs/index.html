@@ -236,27 +236,33 @@
   <aside class="sidebar">
     <div class="sidebar-section">Categories</div>
     <button class="cat-btn active" onclick="setActive(this); sendMessage('show all products')">
-      <span class="cat-icon">🏪</span> All Products <span class="cat-count">8</span>
+      <span class="cat-icon">🏪</span> All Products <span class="cat-count">12</span>
     </button>
     <button class="cat-btn" onclick="setActive(this); sendMessage('show phones')">
       <span class="cat-icon">📱</span> Phones <span class="cat-count">2</span>
     </button>
     <button class="cat-btn" onclick="setActive(this); sendMessage('show laptops')">
-      <span class="cat-icon">💻</span> Laptops <span class="cat-count">2</span>
+      <span class="cat-icon">💻</span> Laptops <span class="cat-count">3</span>
     </button>
     <button class="cat-btn" onclick="setActive(this); sendMessage('show headphones')">
       <span class="cat-icon">🎧</span> Headphones <span class="cat-count">2</span>
     </button>
     <button class="cat-btn" onclick="setActive(this); sendMessage('show tablets')">
-      <span class="cat-icon">📟</span> Tablets <span class="cat-count">1</span>
+      <span class="cat-icon">📟</span> Tablets <span class="cat-count">2</span>
     </button>
     <button class="cat-btn" onclick="setActive(this); sendMessage('show shoes')">
       <span class="cat-icon">👟</span> Shoes <span class="cat-count">1</span>
     </button>
+    <button class="cat-btn" onclick="setActive(this); sendMessage('show wearables')">
+      <span class="cat-icon">⌚</span> Wearables <span class="cat-count">1</span>
+    </button>
+    <button class="cat-btn" onclick="setActive(this); sendMessage('show accessories')">
+      <span class="cat-icon">🖱️</span> Accessories <span class="cat-count">1</span>
+    </button>
     <div class="sidebar-section">Store Stats</div>
     <div class="sidebar-stats">
-      <div class="stat-row"><span class="stat-label">Total Products</span><span class="stat-val">8</span></div>
-      <div class="stat-row"><span class="stat-label">Categories</span><span class="stat-val">5</span></div>
+      <div class="stat-row"><span class="stat-label">Total Products</span><span class="stat-val">12</span></div>
+      <div class="stat-row"><span class="stat-label">Categories</span><span class="stat-val">7</span></div>
       <div class="stat-row"><span class="stat-label">Avg. Rating</span><span class="stat-val">4.6 ⭐</span></div>
       <div class="stat-row"><span class="stat-label">Free Shipping</span><span class="stat-val">$50+</span></div>
     </div>
@@ -275,8 +281,8 @@
       <div class="hero-tags">
         <span class="hero-tag" onclick="sendMessage('show phones')">📱 Phones</span>
         <span class="hero-tag" onclick="sendMessage('show laptops')">💻 Laptops</span>
-        <span class="hero-tag" onclick="sendMessage('show headphones')">🎧 Audio</span>
-        <span class="hero-tag" onclick="sendMessage('price of AirPods Pro')">💰 Best Price</span>
+        <span class="hero-tag" onclick="sendMessage('show wearables')">⌚ Wearables</span>
+        <span class="hero-tag" onclick="sendMessage('show accessories')">🖱️ Accessories</span>
       </div>
     </div>
     <div class="messages" id="messages"></div>
@@ -293,7 +299,6 @@
 </div>
 
 <script>
-  // ✅ FIXED: Correct API URLs
   const API_BASE = 'https://chatbot-shopping.onrender.com/api/';
   const API_CHAT = API_BASE + 'chat/';
   const API_AUTH = API_BASE + 'auth/';
@@ -303,6 +308,7 @@
   let searchTimeout = null;
   let currentUser   = null;
 
+  // ✅ All 12 products with real photos
   const PRODUCT_PHOTOS = {
     1:'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&q=80',
     2:'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&q=80',
@@ -312,12 +318,17 @@
     6:'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400&q=80',
     7:'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&q=80',
     8:'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
+    9:'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&q=80',
+    10:'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&q=80',
+    11:'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&q=80',
+    12:'https://images.unsplash.com/photo-1632163560799-d9f4c9c5e85a?w=400&q=80',
   };
-  const RATINGS       = {1:4.8,2:4.6,3:4.9,4:4.5,5:4.7,6:4.8,7:4.6,8:4.3};
-  const REVIEW_COUNTS = {1:2841,2:1923,3:3102,4:987,5:1456,6:2234,7:876,8:543};
-  const OLD_PRICES    = {1:1099,2:949,3:1399,4:1199,5:399,6:279,7:1199,8:170};
-  const ON_SALE       = [1,3,5,8];
-  const CATEGORY_EMOJI= {phones:'📱',laptops:'💻',headphones:'🎧',tablets:'📟',shoes:'👟'};
+
+  const RATINGS       = {1:4.8,2:4.6,3:4.9,4:4.5,5:4.7,6:4.8,7:4.6,8:4.3,9:4.7,10:4.4,11:4.8,12:4.6};
+  const REVIEW_COUNTS = {1:2841,2:1923,3:3102,4:987,5:1456,6:2234,7:876,8:543,9:1205,10:632,11:987,12:743};
+  const OLD_PRICES    = {1:1099,2:949,3:1399,4:1199,5:399,6:279,7:1199,8:170,9:449,10:899,11:149,12:999};
+  const ON_SALE       = [1,3,5,8,9,11];
+  const CATEGORY_EMOJI= {phones:'📱',laptops:'💻',headphones:'🎧',tablets:'📟',shoes:'👟',wearables:'⌚',accessories:'🖱️'};
 
   const messagesEl = document.getElementById('messages');
   const inputEl    = document.getElementById('userInput');
